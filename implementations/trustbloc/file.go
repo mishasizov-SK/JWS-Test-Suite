@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/hyperledger/aries-framework-go/pkg/doc/jose/jwk"
 	"io/ioutil"
 	"strings"
 
 	"github.com/hyperledger/aries-framework-go/pkg/doc/verifiable"
+	bddVerifiable "github.com/hyperledger/aries-framework-go/test/bdd/pkg/verifiable"
+
 	"github.com/pkg/errors"
 )
 
@@ -15,11 +16,13 @@ func getCredentialFromFile(filePath string) (*verifiable.Credential, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not read credential from file: %s", filePath)
 	}
-	var cred verifiable.Credential
-	if err := json.Unmarshal(bytes, &cred); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal credential")
+	documentLoader, err := bddVerifiable.CreateDocumentLoader()
+	if err != nil {
+		return nil, err
 	}
-	return &cred, nil
+	return verifiable.ParseCredential(bytes,
+		verifiable.WithJSONLDDocumentLoader(documentLoader),
+		verifiable.WithDisabledProofCheck())
 }
 
 func getPresentationFromFile(filePath string) (*verifiable.Presentation, error) {
@@ -48,18 +51,6 @@ func getJWTFromFile(filePath string) (string, error) {
 		return "", errors.Wrap(err, "could not unmarshal jwt")
 	}
 	return jwt.JWT, nil
-}
-
-func getKeyFromFile(filePath string) (*jwk.JWK, error) {
-	bytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not read key from file: %s", filePath)
-	}
-	var key jwk.JWK
-	if err := json.Unmarshal(bytes, &key); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal key")
-	}
-	return &key, nil
 }
 
 func writeVerificationResult(result bool, filePath string) error {

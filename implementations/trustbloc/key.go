@@ -1,0 +1,56 @@
+package main
+
+import (
+	"encoding/json"
+	"io/ioutil"
+
+	"github.com/hyperledger/aries-framework-go/pkg/doc/jose/jwk"
+)
+
+type Key struct {
+	Id            string `json:"id"`
+	Type          string `json:"type"`
+	Controller    string `json:"controller"`
+	PublicKeyJwk  `json:"publicKeyJwk"`
+	PrivateKeyJwk `json:"privateKeyJwk"`
+}
+
+type PublicKeyJwk struct {
+	Kty string `json:"kty"`
+	Crv string `json:"crv"`
+	X   string `json:"x"`
+}
+
+type PrivateKeyJwk struct {
+	Kty string `json:"kty"`
+	Crv string `json:"crv"`
+	X   string `json:"x"`
+	D   string `json:"d"`
+}
+
+func GetKeyFromFile(filePath string) (*Key, error) {
+	bytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	k := &Key{}
+	return k, json.Unmarshal(bytes, k)
+}
+
+func (k *Key) GetPublicKeyJWK() (*jwk.JWK, error) {
+	bytes, err := json.Marshal(k.PublicKeyJwk)
+	if err != nil {
+		return nil, err
+	}
+	publicKey := &jwk.JWK{}
+	return publicKey, publicKey.UnmarshalJSON(bytes)
+}
+
+func (k *Key) GetPrivateKeyJWK() (*jwk.JWK, error) {
+	bytes, err := json.Marshal(k.PrivateKeyJwk)
+	if err != nil {
+		return nil, err
+	}
+	privateKey := &jwk.JWK{}
+	return privateKey, privateKey.UnmarshalJSON(bytes)
+}

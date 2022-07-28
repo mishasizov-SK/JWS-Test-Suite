@@ -2,32 +2,41 @@ package main
 
 import (
 	"crypto/ed25519"
-	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 
+	"github.com/hyperledger/aries-framework-go/pkg/doc/jose"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/jwt"
+	jsonldsig "github.com/hyperledger/aries-framework-go/pkg/doc/signature/jsonld"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/suite"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/suite/ed25519signature2018"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/verifiable"
+	bddVerifiable "github.com/hyperledger/aries-framework-go/test/bdd/pkg/verifiable"
+
+	"github.com/pkg/errors"
 )
 
 func CreateCredential(credFilePath, keyFilePath, outFilePath, format string) error {
+	key, err := GetKeyFromFile(keyFilePath)
+	if err != nil {
+		return err
+	}
 	cred, err := getCredentialFromFile(credFilePath)
 	if err != nil {
 		return err
 	}
-	key, err := getKeyFromFile(keyFilePath)
+	privateKey, err := key.GetPrivateKeyJWK()
 	if err != nil {
 		return err
 	}
-	signer := jwt.NewEd25519Signer(key.JSONWebKey.Key.(ed25519.PrivateKey))
+	signer := jwt.NewEd25519Signer(privateKey.JSONWebKey.Key.(ed25519.PrivateKey))
 
 	var credBytes []byte
 	var credErr error
 	switch format {
 	case VerifiableCredentialFormat:
-		credBytes, credErr = createCredential(signer, cred)
+		credBytes, credErr = createCredential(key.Id, signer, cred)
 	case VerifiableCredentialJWTFormat:
-		credBytes, credErr = createJWTCredential(signer, cred)
+		credBytes, credErr = createJWTCredential(key.Id, signer, cred)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
@@ -37,40 +46,47 @@ func CreateCredential(credFilePath, keyFilePath, outFilePath, format string) err
 	return writeOutputToFile(credBytes, outFilePath)
 }
 
-func createCredential(signer verifiable.Signer, cred *verifiable.Credential) ([]byte, error) {
-	suite := cryptosuite.GetJSONWebSignature2020Suite()
-	if err := suite.Sign(signer, cred); err != nil {
-		return nil, err
-	}
-	signedBytes, err := json.MarshalIndent(cred, "", "    ")
+func createCredential(pubKeyId string, signer verifiable.Signer, cred *verifiable.Credential) ([]byte, error) {
+	documentLoader, err := bddVerifiable.CreateDocumentLoader()
 	if err != nil {
 		return nil, err
 	}
-	return signedBytes, nil
+	err = cred.AddLinkedDataProof(&verifiable.LinkedDataProofContext{
+		SignatureType:           "JsonWebSignature2020",
+		Suite:                   ed25519signature2018.New(suite.WithSigner(signer)),
+		SignatureRepresentation: verifiable.SignatureJWS,
+		Created:                 &cred.Issued.Time,
+		VerificationMethod:      pubKeyId,
+	}, jsonldsig.WithDocumentLoader(documentLoader))
+	if err != nil {
+		return nil, err
+	}
+	return cred.MarshalJSON()
 }
 
-func createJWTCredential(signer *cryptosuite.JSONWebKeySigner, cred *verifiable.Credential) ([]byte, error) {
-	jwtBytes, err := signer.SignVerifiableCredentialJWT(*cred)
+func createJWTCredential(pubKeyId string, signer verifiable.Signer, cred *verifiable.Credential) ([]byte, error) {
+	claims, err := cred.JWTClaims(false)
 	if err != nil {
 		return nil, err
 	}
-	jwtFile := JWTJSONFile{JWT: string(jwtBytes)}
-	signedBytes, err := json.MarshalIndent(jwtFile, "", "    ")
-	if err != nil {
-		return nil, err
-	}
-	return signedBytes, nil
+	res, err := claims.MarshalJWS(verifiable.EdDSA, signer, pubKeyId)
+	return []byte(res), err
 }
 
 func VerifyCredential(credFilePath, keyFilePath, outFilePath, format string) error {
-	key, err := getKeyFromFile(keyFilePath)
+	key, err := GetKeyFromFile(keyFilePath)
 	if err != nil {
 		return err
 	}
-	verifier, err := cryptosuite.NewJSONWebKeyVerifier(key.ID, key.PublicKeyJWK)
+	publicKey, err := key.GetPublicKeyJWK()
 	if err != nil {
 		return err
 	}
+	verifier, err := jwt.NewEd25519Verifier(publicKey.JSONWebKey.Key.(ed25519.PublicKey))
+	if err != nil {
+		return err
+	}
+
 	var verificationResult bool
 	var verificationError error
 	switch format {
@@ -87,24 +103,16 @@ func VerifyCredential(credFilePath, keyFilePath, outFilePath, format string) err
 	return writeVerificationResult(verificationResult, outFilePath)
 }
 
-func verifyCredential(verifier *cryptosuite.JSONWebKeyVerifier, credFilePath string) (bool, error) {
-	cred, err := getCredentialFromFile(credFilePath)
-	if err != nil {
-		return false, errors.Wrapf(err, "could not get credential from file: %s", credFilePath)
-	}
-	suite := cryptosuite.GetJSONWebSignature2020Suite()
-	verificationResult := true
-	if err := suite.Verify(verifier, cred); err != nil {
-		verificationResult = false
-	}
-	return verificationResult, nil
+func verifyCredential(signatureVerifier jose.SignatureVerifier, credFilePath string) (bool, error) {
+	//todo still did not find a place where VC verification happen in AFGO?
+	return false, nil
 }
 
-func verifyJWTCredential(verifier *verifiable.JSONWebKeyVerifier, credFilePath string) (bool, error) {
+func verifyJWTCredential(signatureVerifier jose.SignatureVerifier, credFilePath string) (bool, error) {
 	cred, err := getJWTFromFile(credFilePath)
 	if err != nil {
 		return false, errors.Wrapf(err, "could not get jwt from file: %s", credFilePath)
 	}
-	_, err = verifier.VerifyVerifiableCredentialJWT(cred)
-	return err == nil, nil
+	res, err := jwt.Parse(cred, jwt.WithSignatureVerifier(signatureVerifier))
+	return res != nil, err
 }

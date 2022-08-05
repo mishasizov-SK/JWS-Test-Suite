@@ -28,13 +28,15 @@ func getCredentialFromFile(filePath string) (*verifiable.Credential, error) {
 func getPresentationFromFile(filePath string) (*verifiable.Presentation, error) {
 	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not read vp from file: %s", filePath)
+		return nil, errors.Wrapf(err, "could not read presentation from file: %s", filePath)
 	}
-	var pres verifiable.Presentation
-	if err := json.Unmarshal(bytes, &pres); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal vp")
+	documentLoader, err := bddVerifiable.CreateDocumentLoader()
+	if err != nil {
+		return nil, err
 	}
-	return &pres, nil
+	return verifiable.ParsePresentation(bytes,
+		verifiable.WithPresJSONLDDocumentLoader(documentLoader),
+		verifiable.WithPresDisabledProofCheck())
 }
 
 type JWTJSONFile struct {

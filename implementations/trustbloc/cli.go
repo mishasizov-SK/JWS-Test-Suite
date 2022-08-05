@@ -57,7 +57,7 @@ func main() {
 		if inputType == CredentialInputType {
 			err = CreateCredential(input, key, output, format)
 		} else {
-			//err = CreatePresentation(input, key, output, format)
+			err = CreatePresentation(input, key, output, format)
 		}
 		if err != nil {
 			fmt.Printf("error creating %s: %s\n", inputType, err.Error())
@@ -87,7 +87,7 @@ func main() {
 					format = VerifiablePresentationJWTFormat
 				}
 			}
-			//err = VerifyPresentation(input, keyPath, output, format)
+			err = VerifyPresentation(input, keyPath, output, format)
 		}
 		if err != nil {
 			fmt.Printf("error verifying %s: %s\n", inputType, err.Error())

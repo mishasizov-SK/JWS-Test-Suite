@@ -3,6 +3,7 @@ module github.com/decentralized-identity/JWS-Test-Suite/implementations/trustblo
 go 1.17
 
 require (
+	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/hyperledger/aries-framework-go v0.1.9-0.20220804161850-00eae36105dd
 	github.com/hyperledger/aries-framework-go/test/bdd v0.0.0-20220804161850-00eae36105dd
 	github.com/pkg/errors v0.9.1
@@ -13,7 +14,6 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7 // indirect
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833 // indirect
-	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/cenkalti/backoff/v4 v4.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect

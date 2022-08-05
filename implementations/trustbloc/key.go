@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/hyperledger/aries-framework-go/pkg/doc/jose/jwk"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/verifier"
 )
 
 type Key struct {
@@ -64,4 +65,20 @@ func (k *Key) GetPrivateKeyJWK() (*jwk.JWK, error) {
 	}
 	privateKey := &jwk.JWK{}
 	return privateKey, privateKey.UnmarshalJSON(bytes)
+}
+
+func (k *Key) GetPublicKey(issuerID, keyID string) (*verifier.PublicKey, error) {
+	publicKeyJwk, err := k.GetPublicKeyJWK()
+	if err != nil {
+		return nil, err
+	}
+	b, err := publicKeyJwk.PublicKeyBytes()
+	if err != nil {
+		return nil, err
+	}
+	return &verifier.PublicKey{
+		Type:  "JsonWebKey2020",
+		Value: b,
+		JWK:   publicKeyJwk,
+	}, nil
 }

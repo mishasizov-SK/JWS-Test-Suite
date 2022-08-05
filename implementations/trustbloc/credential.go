@@ -1,17 +1,22 @@
 package main
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 
+	"github.com/btcsuite/btcd/btcec"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/jose"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/jwt"
 	jsonldsig "github.com/hyperledger/aries-framework-go/pkg/doc/signature/jsonld"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/suite"
-	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/suite/ed25519signature2018"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/signature/suite/jsonwebsignature2020"
+	"github.com/hyperledger/aries-framework-go/pkg/doc/util/signature"
 	"github.com/hyperledger/aries-framework-go/pkg/doc/verifiable"
 	bddVerifiable "github.com/hyperledger/aries-framework-go/test/bdd/pkg/verifiable"
-
 	"github.com/pkg/errors"
 )
 
@@ -28,7 +33,30 @@ func CreateCredential(credFilePath, keyFilePath, outFilePath, format string) err
 	if err != nil {
 		return err
 	}
-	signer := jwt.NewEd25519Signer(privateKey.JSONWebKey.Key.(ed25519.PrivateKey))
+
+	alg := verifiable.EdDSA
+	switch privKey := privateKey.JSONWebKey.Key.(type) {
+	case *ecdsa.PrivateKey:
+		switch privKey.Curve {
+		case elliptic.P256():
+			alg = verifiable.ECDSASecp256r1
+		case elliptic.P384():
+			alg = verifiable.ECDSASecp384r1
+		case elliptic.P521():
+			alg = verifiable.ECDSASecp521r1
+		case btcec.S256():
+			alg = verifiable.ECDSASecp256k1
+		}
+	case ed25519.PrivateKey:
+		alg = verifiable.EdDSA
+	case *rsa.PrivateKey:
+		alg = verifiable.RS256
+	}
+
+	signer, err := signature.GetSigner(privateKey)
+	if err != nil {
+		return err
+	}
 
 	var credBytes []byte
 	var credErr error
@@ -36,7 +64,7 @@ func CreateCredential(credFilePath, keyFilePath, outFilePath, format string) err
 	case VerifiableCredentialFormat:
 		credBytes, credErr = createCredential(key.Id, signer, cred)
 	case VerifiableCredentialJWTFormat:
-		credBytes, credErr = createJWTCredential(key.Id, signer, cred)
+		credBytes, credErr = createJWTCredential(alg, key.Id, signer, cred)
 	default:
 		return fmt.Errorf("unsupported format: %s", format)
 	}
@@ -53,7 +81,7 @@ func createCredential(pubKeyId string, signer verifiable.Signer, cred *verifiabl
 	}
 	err = cred.AddLinkedDataProof(&verifiable.LinkedDataProofContext{
 		SignatureType:           "JsonWebSignature2020",
-		Suite:                   ed25519signature2018.New(suite.WithSigner(signer)),
+		Suite:                   jsonwebsignature2020.New(suite.WithSigner(signer)),
 		SignatureRepresentation: verifiable.SignatureJWS,
 		Created:                 &cred.Issued.Time,
 		VerificationMethod:      pubKeyId,
@@ -61,16 +89,27 @@ func createCredential(pubKeyId string, signer verifiable.Signer, cred *verifiabl
 	if err != nil {
 		return nil, err
 	}
-	return cred.MarshalJSON()
+
+	return json.MarshalIndent(cred, "", "    ")
 }
 
-func createJWTCredential(pubKeyId string, signer verifiable.Signer, cred *verifiable.Credential) ([]byte, error) {
+func createJWTCredential(alg verifiable.JWSAlgorithm, pubKeyId string, s verifiable.Signer, cred *verifiable.Credential) ([]byte, error) {
 	claims, err := cred.JWTClaims(false)
 	if err != nil {
 		return nil, err
 	}
-	res, err := claims.MarshalJWS(verifiable.EdDSA, signer, pubKeyId)
-	return []byte(res), err
+
+	res, err := claims.MarshalJWS(alg, s, pubKeyId)
+	if err != nil {
+		return nil, err
+	}
+
+	resStr := `{
+	"jwt": "%s"
+}`
+	resStr = fmt.Sprintf(resStr, res)
+
+	return []byte(resStr), nil
 }
 
 func VerifyCredential(credFilePath, keyFilePath, outFilePath, format string) error {

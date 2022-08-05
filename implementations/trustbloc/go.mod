@@ -1,9 +1,10 @@
-module github.com/decentralized-identity/JWS-Test-Suite/implementations/tbd
+module github.com/decentralized-identity/JWS-Test-Suite/implementations/trustbloc
 
 go 1.17
 
 require (
-	github.com/hyperledger/aries-framework-go v0.1.9-0.20220727144707-c7f67664fe60
+	github.com/hyperledger/aries-framework-go v0.1.9-0.20220804161850-00eae36105dd
+	github.com/hyperledger/aries-framework-go/test/bdd v0.0.0-20220804161850-00eae36105dd
 	github.com/pkg/errors v0.9.1
 )
 
@@ -29,8 +30,10 @@ require (
 	github.com/kawamuray/jsonpath v0.0.0-20201211160320-7483bafabd7e // indirect
 	github.com/kilic/bls12-381 v0.1.1-0.20210503002446-7b7597926c69 // indirect
 	github.com/klauspost/compress v1.10.0 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v0.1.1 // indirect
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.0.4 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
@@ -42,6 +45,7 @@ require (
 	github.com/piprate/json-gold v0.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693 // indirect
@@ -60,14 +64,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.3 // indirect
-)
-
-require (
-	github.com/hyperledger/aries-framework-go/test/bdd v0.0.0-20220727144707-c7f67664fe60
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

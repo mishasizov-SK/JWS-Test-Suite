@@ -19,13 +19,24 @@ type PublicKeyJwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`
 	X   string `json:"x"`
+	Y   string `json:"y"`
+	N   string `json:"n"`
+	E   string `json:"e"`
 }
 
 type PrivateKeyJwk struct {
 	Kty string `json:"kty"`
 	Crv string `json:"crv"`
 	X   string `json:"x"`
+	Y   string `json:"y"`
 	D   string `json:"d"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+	DP  string `json:"dp"`
+	DQ  string `json:"dq"`
+	P   string `json:"p"`
+	Q   string `json:"q"`
+	QI  string `json:"qi"`
 }
 
 func GetKeyFromFile(filePath string) (*Key, error) {

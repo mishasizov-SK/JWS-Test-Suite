@@ -42,3 +42,10 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./data:/data
+  trustbloc:
+    image: trustbloc/jws-test-suite-cli
+    build:
+      context: ./implementations/trustbloc
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data
